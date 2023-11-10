@@ -4,26 +4,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REGNVM</title>
+    <title>REGNVM - Interactive Node Graph</title>
     <style>
         body {
-            background-color: #fff;
-            color: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
             margin: 0;
+            overflow: hidden;
         }
 
-        h1 {
-            font-size: 2em;
+        .node {
+            fill: #1f77b4;
+            stroke: #fff;
+            stroke-width: 2px;
+        }
+
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+
+        .textbox {
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 200px;
         }
     </style>
 </head>
 
 <body>
-    <h1>REGNVM</h1>
+    <svg width="100%" height="100%"></svg>
+    <div id="node-textbox" class="textbox"></div>
+
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script>
+        // Sample data with ten nodes and links
+        const nodes = Array.from({ length: 10 }, (_, i) => ({
+            id: i + 1,
+            text: `Node ${i + 1}: This is a paragraph of text.`,
+        }));
+
+        const links = Array.from({ length: 9 }, (_, i) => ({ source: i, target: i + 1 }));
+
+        const svg = d3.select("svg");
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        // Create a force simulation
+        const simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(50))
+            .force("charge", d3.forceManyBody().strength(-200))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        // Create links
+        const link = svg.selectAll(".link")
+            .data(links)
+            .enter().append("line")
+            .attr("class", "link");
+
+        // Create nodes
+        const node = svg.selectAll(".node")
+            .data(nodes)
+            .enter().append("circle")
+            .attr("class", "node")
+            .attr("r", 20)
+            .on("click", showText);
+
+        // Update node positions on tick
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+        });
+
+        // Show node text in the textbox
+        function showText(d) {
+            const textbox = document.getElementById("node-textbox");
+            textbox.innerHTML = `<strong>Node ${d.id}:</strong><br>${d.text}`;
+        }
+    </script>
 </body>
 
 </html>
