@@ -4,72 +4,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REGNVM - Interactive Node Graph</title>
+    <title>Interactive Node Graph</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
+            background-color: white;
         }
 
         .node {
-            fill: #1f77b4;
-            stroke: #fff;
-            stroke-width: 2px;
+            fill: white;
+            stroke: #000;
+            stroke-width: 1px;
+            cursor: move;
         }
 
         .link {
-            stroke: #999;
-            stroke-opacity: 0.6;
+            stroke: #000;
+            stroke-width: 1px;
         }
 
         .textbox {
             background-color: white;
-            border: 1px solid #ccc;
-            padding: 10px;
-            width: 200px;
+            border: 1px solid #000;
+            padding: 5px;
+            width: 150px;
+            resize: both;
+            overflow: hidden;
         }
     </style>
 </head>
 
 <body>
     <svg width="100%" height="100%"></svg>
-    <div id="node-textbox" class="textbox"></div>
 
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script>
-        // Sample data with ten nodes and links
-        const nodes = Array.from({ length: 10 }, (_, i) => ({
-            id: i + 1,
-            text: `Node ${i + 1}: This is a paragraph of text.`,
-        }));
-
-        const links = Array.from({ length: 9 }, (_, i) => ({ source: i, target: i + 1 }));
-
         const svg = d3.select("svg");
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        // Create a force simulation
+        const nodes = [
+            { id: 1, text: "Node 1" },
+            { id: 2, text: "Node 2" },
+            { id: 3, text: "Node 3" },
+            { id: 4, text: "Node 4" },
+            { id: 5, text: "Node 5" },
+        ];
+
+        const links = [
+            { source: 1, target: 2 },
+            { source: 2, target: 3 },
+            { source: 3, target: 4 },
+            { source: 4, target: 5 },
+        ];
+
         const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(50))
+            .force("link", d3.forceLink(links).id(d => d.id).distance(100))
             .force("charge", d3.forceManyBody().strength(-200))
             .force("center", d3.forceCenter(width / 2, height / 2));
 
-        // Create links
         const link = svg.selectAll(".link")
             .data(links)
             .enter().append("line")
             .attr("class", "link");
 
-        // Create nodes
         const node = svg.selectAll(".node")
             .data(nodes)
-            .enter().append("circle")
+            .enter().append("rect")
             .attr("class", "node")
-            .attr("r", 20)
-            .on("click", showText);
+            .attr("width", 150)
+            .attr("height", 40)
+            .attr("rx", 10)
+            .attr("ry", 10)
+            .on("click", showText)
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
 
-        // Update node positions on tick
+        const label = svg.selectAll(".label")
+            .data(nodes)
+            .enter().append("text")
+            .attr("class", "label")
+            .text(d => d.text)
+            .attr("text-anchor", "middle")
+            .attr("dy", 4);
+
         simulation.on("tick", () => {
             link
                 .attr("x1", d => d.source.x)
@@ -78,14 +99,37 @@
                 .attr("y2", d => d.target.y);
 
             node
-                .attr("cx", d => d.x)
-                .attr("cy", d => d.y);
+                .attr("x", d => d.x - 75)
+                .attr("y", d => d.y - 20);
+
+            label
+                .attr("x", d => d.x)
+                .attr("y", d => d.y + 4);
         });
 
-        // Show node text in the textbox
         function showText(d) {
-            const textbox = document.getElementById("node-textbox");
-            textbox.innerHTML = `<strong>Node ${d.id}:</strong><br>${d.text}`;
+            const textbox = prompt("Edit text:", d.text);
+            if (textbox !== null) {
+                d.text = textbox;
+                d3.select(this.parentNode).select("text").text(textbox);
+            }
+        }
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
         }
     </script>
 </body>
